@@ -39,7 +39,7 @@ connect(config.mongoUrl)
 
 }).then((meters) => {
   totalMeters = meters.length
-  console.log("Found " + totalMeters + " meters with no totalEnergyMeasured. Going through each one...")
+  console.log("Found " + totalMeters + " meters. Going through each one...")
 
   const calculateEnergyPromises = []
 
