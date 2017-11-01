@@ -59,23 +59,27 @@ connect(config.mongoUrl)
  * and logs the result on the console
  */
 function calculateTotalEnergyMeasured(meterName) {
-  const EnergyEvents = dbConnection.collection('energy_events')
-  const pipeline = [
-    {
-      $match: {meterName: meterName}
-    },
-    {
-      $group: {
-        "_id": "totalEnergyForMeter" + meterName,
-        "totalEnergy": {"$sum": "$energy"}
-      }
-    }
-  ];
-  const aggregationCursor = EnergyEvents.aggregate(pipeline)
+  let dbConnection
   let totalEnergy
+  return connect(config.mongoUrl)
+    .then((db) => {
+      dbConnection = db
+      const EnergyEvents = dbConnection.collection('energy_events')
+      const pipeline = [
+        {
+          $match: {meterName: meterName}
+        },
+        {
+          $group: {
+            "_id": "totalEnergyForMeter" + meterName,
+            "totalEnergy": {"$sum": "$energy"}
+          }
+        }
+      ];
+      const aggregationCursor = EnergyEvents.aggregate(pipeline)
+      return aggregationCursor.next()
 
-  const promise = aggregationCursor.next()
-    .then((aggregationResult) => {
+    }).then((aggregationResult) => {
       if (aggregationResult) {
         console.assert(aggregationResult.totalEnergy, "No total energy in result! " + JSON.stringify(aggregationResult))
         totalEnergy = Math.floor(aggregationResult.totalEnergy)
@@ -84,17 +88,17 @@ function calculateTotalEnergyMeasured(meterName) {
       }
       const Meters = dbConnection.collection('meters')
       return Meters.updateOne({meterName: meterName}, {$set: {totalEnergyMeasured: totalEnergy}})
-    })
-    .then((updateResult) => {
+
+    }).then((updateResult) => {
       console.assert(updateResult.modifiedCount == 1, "Failed to update meter " + meterName + ": " + JSON.stringify(updateResult))
       console.log(`  (${currentMeter} / ${totalMeters}) Meter ${meterName} => ${totalEnergy} Wh`)
       currentMeter = currentMeter + 1
-      return Promise.resolve()
-    })
-    .catch((err) => {
+      return dbConnection.close()
+
+    }).catch((err) => {
       console.log("Error for meter " + meterName, err)
     })
-  return promise
+
 }
 
 
