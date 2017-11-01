@@ -1,0 +1,17 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "config": "1.24.0",
+    "js-yaml": "3.7.0",
+    "mongodb": "^2.2.33",
+    "promise": "7.1.1"
+  }
+}
