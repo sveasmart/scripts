@@ -71,8 +71,12 @@ function calculateTotalEnergyMeasured(meterName) {
 
   const promise = aggregationCursor.next()
     .then((aggregationResult) => {
-      console.assert(aggregationResult.totalEnergy, "No total energy in result! " + JSON.stringify(aggregationResult))
-      totalEnergy = Math.floor(aggregationResult.totalEnergy)
+      if (aggregationResult) {
+        console.assert(aggregationResult.totalEnergy, "No total energy in result! " + JSON.stringify(aggregationResult))
+        totalEnergy = Math.floor(aggregationResult.totalEnergy)
+      } else {
+        totalEnergy = 0
+      }
       const Meters = dbConnection.collection('meters')
       return Meters.updateOne({meterName: meterName}, {$set: {totalEnergyMeasured: totalEnergy}})
     })
