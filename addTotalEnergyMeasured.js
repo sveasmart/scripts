@@ -27,7 +27,6 @@ connect(config.mongoUrl)
     return Meters.find({totalEnergyMeasured: {$exists: false}}, {meterName: 1})
 
 }).then((metersCursor) => {
-  metersCursor.limit(1) //TEMP
   return metersCursor.toArray()
 
 }).then((meters) => {
