@@ -26,7 +26,8 @@ connect(config.mongoUrl)
     dbConnection = db
 
     const Meters = db.collection('meters')
-    return Meters.find({totalEnergyMeasured: {$exists: false}}, {meterName: 1})
+    //return Meters.find({totalEnergyMeasured: {$exists: false}}, {meterName: 1})
+    return Meters.find({}, {meterName: 1})
 
 }).then((metersCursor) => {
   if (config.limit) {
