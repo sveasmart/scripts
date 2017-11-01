@@ -27,11 +27,16 @@ connect(config.mongoUrl)
     return Meters.find({totalEnergyMeasured: {$exists: false}}, {meterName: 1})
 
 }).then((metersCursor) => {
+  if (config.limit) {
+    console.log("Will limit to " + config.limit + " results")
+    metersCursor.limit(config.limit)
+  }
+
   return metersCursor.toArray()
 
 }).then((meters) => {
   totalMeters = meters.length
-  console.log("Found " + totalMeters + " meters with no totalEnergyMeasured.")
+  console.log("Found " + totalMeters + " meters with no totalEnergyMeasured. Going through each one...")
 
   const calculateEnergyPromises = []
 
