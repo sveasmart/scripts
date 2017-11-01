@@ -1,6 +1,8 @@
 /**
  * This one-off script calculates totalEnergyMeasured for each Meter,
  * and saves it as totalEnergyMeasured.
+ *
+ * You can set config param "limit: 5" to limit the number of meters updated (useful for testing).
  */
 
 const config = require('config')
