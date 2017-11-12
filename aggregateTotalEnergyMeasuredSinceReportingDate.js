@@ -16,7 +16,7 @@ let dbConnection
 let totalMeters
 let currentMeter = 1
 
-console.log("\n====================================================================")
+console.log("\n==== AGGREGATE TOTAL ENERGY MEASURED SINCE REPORTING DATE =================================================")
 console.log("Connecting to DB...")
 
 connect(config.mongoUrl)
@@ -26,8 +26,7 @@ connect(config.mongoUrl)
     dbConnection = db
 
     const Meters = db.collection('meters')
-    //return Meters.find({totalEnergyMeasured: {$exists: false}}, {meterName: 1})
-    return Meters.find({}, {meterName: 1})
+    return Meters.find({reportingStartDate: {$exists: true}}, {meterName: 1, reportingStartDate: 1})
 
 }).then((metersCursor) => {
   if (config.limit) {
@@ -39,12 +38,12 @@ connect(config.mongoUrl)
 
 }).then((meters) => {
   totalMeters = meters.length
-  console.log("Found " + totalMeters + " meters. Going through each one...")
+  console.log("Found " + totalMeters + " meters that have reportingStartDate. Going through each one...")
 
   const calculateEnergyPromises = []
 
   meters.forEach((meter) => {
-    calculateEnergyPromises.push(calculateTotalEnergyMeasured(meter.meterName))
+    calculateEnergyPromises.push(calculateTotalEnergyMeasuredSinceReportingDate(meter))
   })
   return Promise.all(calculateEnergyPromises)
 
@@ -61,7 +60,7 @@ connect(config.mongoUrl)
  * Returns a promise that does the calculation, saves it in the Meter,
  * and logs the result on the console
  */
-function calculateTotalEnergyMeasured(meterName) {
+function calculateTotalEnergyMeasuredSinceReportingDate(meter) {
   let dbConnection
   let totalEnergy
   return connect(config.mongoUrl)
@@ -70,11 +69,14 @@ function calculateTotalEnergyMeasured(meterName) {
       const EnergyEvents = dbConnection.collection('energy_events')
       const pipeline = [
         {
-          $match: {meterName: meterName}
+          $match: {
+            meterName: meter.meterName,
+            endTime: {'$gte': meter.reportingStartDate}
+          }        
         },
         {
           $group: {
-            "_id": "totalEnergyForMeter" + meterName,
+            "_id": "totalEnergyForMeterSinceReportingDate" + meter.meterName,
             "totalEnergy": {"$sum": "$energy"}
           }
         }
@@ -90,16 +92,19 @@ function calculateTotalEnergyMeasured(meterName) {
         totalEnergy = 0
       }
       const Meters = dbConnection.collection('meters')
-      return Meters.updateOne({meterName: meterName}, {$set: {totalEnergyMeasured: totalEnergy}})
+      return Meters.updateOne(
+        {meterName: meter.meterName},
+        {$set: {totalEnergyMeasuredSinceReportingDate: totalEnergy}}
+      )
 
     }).then((updateResult) => {
-      console.assert(updateResult.modifiedCount == 1, "Failed to update meter " + meterName + ": " + JSON.stringify(updateResult))
-      console.log(`  (${currentMeter} / ${totalMeters}) Meter ${meterName} => ${totalEnergy} Wh`)
+      console.assert(updateResult.modifiedCount == 1, "Failed to update meter " + meter.meterName + ": " + JSON.stringify(updateResult))
+      console.log(`  (${currentMeter} / ${totalMeters}) Meter ${meter.meterName} => ${totalEnergy} Wh`)
       currentMeter = currentMeter + 1
       return dbConnection.close()
 
     }).catch((err) => {
-      console.log("Error for meter " + meterName, err)
+      console.log("Error for meter " + meter.meterName, err)
     })
 
 }
